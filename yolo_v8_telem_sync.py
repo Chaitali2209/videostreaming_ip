@@ -39,7 +39,7 @@ ffmpeg_cmd = [
     "-tune", "zerolatency",
     "-f", "rtsp",
     "-rtsp_transport", "tcp",
-    "rtsp://192.168.104.160:8554/stream1"
+    "rtsp://192.168.104.160:8554/stream4"
 ]
 ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 

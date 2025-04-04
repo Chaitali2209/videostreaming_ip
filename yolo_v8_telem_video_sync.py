@@ -33,6 +33,8 @@ ffmpeg_cmd = [
     "-y",
     "-f", "rawvideo",
     "-vcodec", "rawvideo",
+    "-probesize", "32",
+    "-analyzeduration", "1000000",
     "-pix_fmt", "bgr24",
     "-s", "1280x720",
     "-r", "30",

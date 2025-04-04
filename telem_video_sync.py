@@ -19,17 +19,19 @@ ffmpeg_cmd = [
     "ffmpeg",
     "-y",
     "-f", "rawvideo",
+    "-probesize", "32",
+    "-analyzeduration", "1000000",
     "-vcodec", "rawvideo",
     "-pix_fmt", "bgr24",
-    "-s", "1280x720",
+    "-s", "1280x720",                   
     "-r", "30",
     "-i", "-",
-    "-c:v", "libx264",
+    "-c:v", "h264_nvenc",
     "-preset", "ultrafast",
     "-tune", "zerolatency",
     "-f", "rtsp",
     "-rtsp_transport", "tcp",
-    "rtsp://192.168.0.130:8554/stream1"
+    "rtsp://192.168.104.160:8554/stream4"
 ]
 ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
