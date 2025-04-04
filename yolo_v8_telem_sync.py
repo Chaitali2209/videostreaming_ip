@@ -7,20 +7,12 @@ import torch
 import sys
 import numpy as np
 
-# === Add YOLOv5 to path and import necessary modules ===
-sys.path.insert(0, "./yolov5")  # Adjust if yolov5 folder is elsewhere
-from models.common import DetectMultiBackend
-from utils.augmentations import letterbox
-from utils.general import non_max_suppression, scale_boxes
-from utils.plots import Annotator, colors
-from utils.torch_utils import select_device
+from yolov11 import YOLOv11Detector
 
-# === Load YOLOv5 Model ===
-device = select_device('')
-print(device)
-model = DetectMultiBackend('yolov8n.pt', device=device)  # Replace with your model path
-stride, names = model.stride, model.names
-imgsz = (640, 640)  # Inference size
+sys.path.insert(0, "./yolov5")
+from utils.plots import Annotator, colors  # still using YOLOv5's visualizer for easy box drawing
+
+YOLO_Detect = YOLOv11Detector()
 
 # === Connect to MAVLink ===
 mav = mavutil.mavlink_connection("/dev/ttyACM0", baud=115200)
@@ -41,13 +33,13 @@ ffmpeg_cmd = [
     "-pix_fmt", "bgr24",
     "-s", "1280x720",
     "-r", "30",
-    "-i", "-",                              
+    "-i", "-",
     "-c:v", "libx264",
     "-preset", "ultrafast",
     "-tune", "zerolatency",
     "-f", "rtsp",
     "-rtsp_transport", "tcp",
-    "rtsp://192.168.104.160:8554/stream1"  # Adjust your RTSP server address
+    "rtsp://192.168.104.160:8554/stream1"
 ]
 ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
@@ -74,26 +66,20 @@ while True:
         print("⚠️ Frame capture failed.")
         continue
 
-    # === YOLOv5 Preprocessing ===
-    img = letterbox(frame, imgsz, stride=stride, auto=True)[0]
-    img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-    img = np.ascontiguousarray(img)
-    img_tensor = torch.from_numpy(img).to(device).float() / 255.0
-    if img_tensor.ndimension() == 3:
-        img_tensor = img_tensor.unsqueeze(0)
+    # === YOLOv8 Inference ===
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = YOLO_Detect.predict(rgb_frame, 0.35)
 
-    # === Inference and NMS ===
-    pred = model(img_tensor, augment=False, visualize=False)
-    pred = non_max_suppression(pred, 0.25, 0.45, classes=None, agnostic=False)
-
-    # === Annotate Frame ===
-    annotator = Annotator(frame, line_width=2, example=str(names))
-    for det in pred:
-        if len(det):
-            det[:, :4] = scale_boxes(img_tensor.shape[2:], det[:, :4], frame.shape).round()
-            for *xyxy, conf, cls in det:
-                label = f'{names[int(cls)]} {conf:.2f}'
-                annotator.box_label(xyxy, label, color=colors(int(cls), True))
+    # === Annotate Detections ===
+    annotator = Annotator(frame, line_width=2, example=str(YOLO_Detect.model.names))
+    for r in results:
+        boxes = r.boxes
+        for box in boxes:
+            cls = int(box.cls[0].item())
+            conf = box.conf[0].item()
+            xyxy = box.xyxy[0].cpu().numpy().astype(int)
+            label = f"{YOLO_Detect.model.names[cls]} {conf:.2f}"
+            annotator.box_label(xyxy, label, color=colors(cls, True))
     frame = annotator.result()
 
     # === Overlay Telemetry ===
@@ -102,10 +88,10 @@ while True:
     cv2.putText(frame, overlay, (10, 50), cv2.FONT_HERSHEY_SIMPLEX,
                 0.8, (255, 255, 255), 2, cv2.LINE_AA)
 
-    # === Send to FFmpeg ===
+    # === Send frame to FFmpeg ===
     ffmpeg_proc.stdin.write(frame.tobytes())
 
-    # === Optional Debug Preview ===
+    # === Optional debug display ===
     # cv2.imshow("Debug", frame)
     # if cv2.waitKey(1) & 0xFF == ord('q'):
     #     break
