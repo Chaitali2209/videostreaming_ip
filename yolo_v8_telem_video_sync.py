@@ -6,6 +6,8 @@ from datetime import datetime
 import torch
 import sys
 import numpy as np
+import os
+import csv
 
 # === Import YOLOv8 ===
 sys.path.insert(0, "./yolov5")
@@ -44,12 +46,27 @@ ffmpeg_cmd = [
     "-tune", "zerolatency",
     "-f", "rtsp",
     "-rtsp_transport", "tcp",
-    "rtsp://192.168.104.160:8554/stream4"
+    "rtsp://192.168.0.130:8554/stream4"
 ]
+
 ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+
+# === Logging Setup ===
+os.makedirs("logged_frames", exist_ok=True)
+os.makedirs("logged_telemetry", exist_ok=True)
+telemetry_log_file = os.path.join("logged_telemetry", f"telemetry_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+
+with open(telemetry_log_file, 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(["Timestamp", "Latitude", "Longitude", "Altitude", "Yaw"])
+
+# === Initialize telemetry variables ===
 
 # === Initialize telemetry variables ===
 last_alt = last_lat = last_lon = last_yaw = "N/A"
+
+frame_count = 0
+log_interval = 10  # log every N frames
 
 # === Main Loop ===
 while True:
@@ -95,6 +112,20 @@ while True:
 
     # === Send frame to FFmpeg ===
     ffmpeg_proc.stdin.write(frame.tobytes())
+
+    # === Logging frame and telemetry ===
+    frame_count += 1
+    if frame_count % log_interval == 0:
+        log_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Save frame
+        cv2.imwrite(f"logged_frames/frame_{log_time}.jpg", frame)
+
+        # Save telemetry
+        with open(telemetry_log_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([log_time, last_lat, last_lon, last_alt, last_yaw])
+
 
     # === Optional debug display ===
     # cv2.imshow("Debug", frame)

@@ -19,20 +19,21 @@ ffmpeg_cmd = [
     "ffmpeg",
     "-y",
     "-f", "rawvideo",
+    "-vcodec", "rawvideo",
     "-probesize", "32",
     "-analyzeduration", "1000000",
-    "-vcodec", "rawvideo",
     "-pix_fmt", "bgr24",
-    "-s", "1280x720",                   
+    "-s", "1280x720",
     "-r", "30",
     "-i", "-",
-    "-c:v", "h264_nvenc",
+    "-c:v", "libx264",
     "-preset", "ultrafast",
     "-tune", "zerolatency",
     "-f", "rtsp",
     "-rtsp_transport", "tcp",
-    "rtsp://192.168.104.160:8554/stream4"
+    "rtsp://192.168.146.160:8554/stream4"
 ]
+
 ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
 # Initialize telemetry values
