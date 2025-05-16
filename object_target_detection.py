@@ -19,6 +19,8 @@ model = YOLO('yolo11n.pt')  # Replace with your model
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"✅ Using device: {device}")
 
+classes_to_detect = [0]
+
 # === Connect to MAVLink ===
 mav = mavutil.mavlink_connection("/dev/ttyACM0", baud=115200)
 mav.wait_heartbeat()
@@ -31,15 +33,25 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 # === RTSP Streaming ===
 ffmpeg_cmd = [
-    "ffmpeg", "-y", "-f", "rawvideo", "-vcodec", "rawvideo",
+    "ffmpeg", "-y", "-f", "rawvideo", "-vcodec", "rawvideo","-probesize", "32",
+    "-analyzeduration", "1000000",
     "-pix_fmt", "bgr24", "-s", "1280x720", "-r", "30", "-i", "-",
     "-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency",
-    "-f", "rtsp", "-rtsp_transport", "tcp", "rtsp://192.168.146.160:8554/stream3"
+    "-f", "rtsp", "-rtsp_transport", "tcp", "rtsp://192.168.0.130:8554/stream3"
 ]
 ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
 # === Logging Setup ===
 os.makedirs("logged_frames", exist_ok=True)
+# base_dir = "logged_frames/"
+# date_str = datetime.now().strftime("%Y%m%d")
+# mission_prefix = f"captured_frames_"
+
+# mission_dir = os.path.join(base_dir, f"{mission_prefix}_{date_str}")
+
+# os.makedirs(f"{mission_prefix}_{date_str}")
+# print(f"✅ Saving frames to: {mission_dir}")
+
 os.makedirs("logged_telemetry", exist_ok=True)
 telemetry_log_file = os.path.join("logged_telemetry", f"target_object_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
 with open(telemetry_log_file, 'w', newline='') as f:
@@ -87,7 +99,7 @@ while True:
         if not msg:
             break
         if msg.get_type() == "GLOBAL_POSITION_INT":
-            last_alt = f"{msg.alt / 1000.0:.2f}m"
+            last_alt = f"{msg.relative_alt / 1000.0:.2f}m"
             last_lat = f"{msg.lat / 1e7:.6f}"
             last_lon = f"{msg.lon / 1e7:.6f}"
         elif msg.get_type() == "ATTITUDE":
@@ -101,8 +113,8 @@ while True:
 
     # YOLOv8 Inference
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = model.predict(source=rgb_frame, device=device, verbose=False)
-
+    results = model.predict(source=rgb_frame, device=device, classes=classes_to_detect, verbose=False)
+    
     annotator = Annotator(frame, line_width=2, example=str(model.names))
     objects_in_frame = []
 
@@ -147,7 +159,7 @@ while True:
         # Save frame
         cv2.imwrite(f"logged_frames/frame_{log_time}.jpg", frame)
 
-        # Save telemetry
+        # Save telemetryhg bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbu
         with open(telemetry_log_file, 'a', newline='') as f:
             writer = csv.writer(f)
             for obj_name, obj_lat, obj_lon in objects_in_frame:
