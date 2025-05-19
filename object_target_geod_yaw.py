@@ -33,10 +33,11 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 # === RTSP Streaming Setup ===
 ffmpeg_cmd = [
-    "ffmpeg", "-y", "-f", "rawvideo", "-vcodec", "rawvideo",
+    "ffmpeg", "-y", "-f", "rawvideo", "-vcodec", "rawvideo", "-probesize", "32",
+    "-analyzeduration", "1000000",
     "-pix_fmt", "bgr24", "-s", "1280x720", "-r", "30", "-i", "-",
     "-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency",
-    "-f", "rtsp", "-rtsp_transport", "tcp", "rtsp://192.168.146.160:8554/stream3"
+    "-f", "rtsp", "-rtsp_transport", "tcp", "rtsp://192.168.0.130:8554/stream3"
 ]
 ffmpeg_proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 

@@ -159,7 +159,7 @@ while True:
         # Save frame
         cv2.imwrite(f"logged_frames/frame_{log_time}.jpg", frame)
 
-        # Save telemetryhg bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbu
+        # Save telemetry
         with open(telemetry_log_file, 'a', newline='') as f:
             writer = csv.writer(f)
             for obj_name, obj_lat, obj_lon in objects_in_frame:

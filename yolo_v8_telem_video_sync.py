@@ -18,6 +18,8 @@ from utils.plots import Annotator, colors  # still using YOLOv5's visualizer for
 model = YOLO('yolo11n.pt')  # use yolov8n/yolov8s etc.
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"✅ Using device: {device}")
+classes_to_detect = [0]
+
 
 # === Connect to MAVLink ===
 mav = mavutil.mavlink_connection("/dev/ttyACM0", baud=115200)
@@ -25,7 +27,9 @@ mav.wait_heartbeat()
 print("✅ MAVLink: Connected to FCU")
 
 # === Set up Video Capture ===
-cap = cv2.VideoCapture("/dev/video0")
+cap = cv2.VideoCapture("/dev/video0", 
+                       
+                       )
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
@@ -44,6 +48,10 @@ ffmpeg_cmd = [
     "-c:v", "libx264",
     "-preset", "ultrafast",
     "-tune", "zerolatency",
+    "-g", "30",                    # GOP size
+    "-keyint_min", "30",          # force intra refresh
+    "-x264-params", "nal-hrd=cbr:force-cfr=1",  # better for live
+    "-bufsize", "512k",
     "-f", "rtsp",
     "-rtsp_transport", "tcp",
     "rtsp://192.168.0.130:8554/stream3"
@@ -90,7 +98,7 @@ while True:
 
     # === YOLOv8 Inference ===
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = model.predict(source=rgb_frame, device=device, verbose=False)
+    results = model.predict(source=rgb_frame, device=device, classes=classes_to_detect, verbose=False)
 
     # === Annotate Detections ===
     annotator = Annotator(frame, line_width=2, example=str(model.names))
