@@ -36,3 +36,10 @@ ffmpeg_cmd = [
 ]
 
 
+## creating a tensorrt virtualenv
+1. A virtual environment using system-site-packages to include tensorrt - python3 -m virtualenv -p python3 venv --system-site-packages
+2. source activate
+3. pip install /path/to/torch, /path/to/torchvision
+4. pip install ultralytics
+5. yolo export model=yolo11n-seg.pt format=engine half=True
+
